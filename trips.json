@@ -1,0 +1,48 @@
+[
+    {
+        "destination": "Destination 1",
+        "date": "2025-12-12",
+        "participants": [
+            {
+                "name": "Participant 1",
+                "email": "1@example.com"
+            },
+            {
+                "name": "Participant 2",
+                "email": "2@example.com"
+            },
+            {
+                "name": "Participant 3",
+                "email": "2@example.com"
+            }
+        ]
+    },
+    {
+        "destination": "Destination 1",
+        "date": "2026-12-12",
+        "participants": [
+            {
+                "name": "Participant 1",
+                "email": "1@example.com"
+            },
+            {
+                "name": "Participant 2",
+                "email": "2@example.com"
+            },
+            {
+                "name": "Participant 3",
+                "email": "2@example.com"
+            }
+        ]
+    },
+    {
+        "destination": "Destination 3",
+        "date": "2027-12-12",
+        "participants": [
+            {
+                "name": "Participant 2",
+                "email": "2@example.com"
+            }
+        ]
+    }
+]

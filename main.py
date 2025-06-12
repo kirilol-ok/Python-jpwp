@@ -1,22 +1,195 @@
-# main.py - Główny moduł aplikacji z tekstowym interfejsem użytkownika (CLI)
-
 import json
-import logging
-import warnings
-import tracemalloc
 import pdb
 
-from trip_app import logging_setup, api
-from trip_app.exceptions import TripError, ParticipantExistsError, ParticipantNotFoundError
+from trip_app.exceptions import *
+from trip_app.input_validation import *
 from trip_app.trip import Trip
-from trip_app.input_validation import parse_date
-from trip_app.context import FileTransaction
+
+trips = []  # lista wycieczek
+
+
+def newTrip():
+    dest = input("Podaj cel podróży: ").strip()
+    while True:
+        try:
+            date_str = input("Podaj datę wyjazdu (RRRR-MM-DD): ").strip()
+            date = parse_date(date_str)
+            break
+        except DateError as e:
+            print(f"Błąd walidacji daty: {e}")
+
+    trip = Trip(dest, date)
+    if trip in trips:
+        print(f"Wycieczka do {dest} na {date} już istnieje.")
+        return
+    trips.append(trip)
+    print(f"Utworzono wycieczkę: {dest} ({date})")
+
+def showTrips():
+    if not trips:
+        raise NoTripsError("Brak wycieczek.")
+    else:
+        print("Lista wycieczek:")
+        for idx, t in enumerate(trips, 1):
+            print(f" {idx}. {t.destination} ({t.date}) - uczestników: {len(t.participants)}")
+
+def deleteTrip():
+    print("Wybierz wycieczkę do usunięcia:")
+    try:
+        showTrips()
+    except NoTripsError as e:
+        print(e, "- nie można usunąć.")
+        return
+
+    while True:
+        try:
+            sel = int(input("Numer: ").strip())
+            break
+        except ValueError:
+            print("Nieprawidłowy numer.")
+
+    if 1 <= sel <= len(trips):
+        rem = trips.pop(sel-1)
+        print(f"Usunięto wycieczkę: {rem.destination}")
+    else:
+        print("Nieprawidłowy numer.")
+        deleteTrip()
+        return
+
+def addParticipantToTrip():
+    print("Wybierz wycieczkę")
+    try:
+        showTrips()
+    except NoTripsError as e:
+        print(e, "Najpierw utwórz wycieczkę.")
+        newTrip()
+        addParticipantToTrip()
+        return
+    while True:
+        try:
+            sel = int(input("Numer: ").strip())
+            break
+        except ValueError:
+            print("Nieprawidłowy numer.")
+
+    if not (1 <= sel <= len(trips)):
+        print("Nieprawidłowy wybór.")
+        addParticipantToTrip()
+        return
+    else:
+        t = trips[sel-1]
+        name = input("Imię i nazwisko: ").strip()
+
+        while True:
+            try:
+                email = input("Email: ").strip()
+                email = email_validate(email)
+                break
+            except EmailError as e:
+                print(e)
+        try:
+            t.add_participant(name, email)
+            print(f"Dodano uczestnika {name} <{email}> do '{t.destination}'")
+        except ParticipantExistsError as e:
+            print(f"Błąd dodawania uczestnika: {e}")
+            return
+
+def removeParticipantFromTrip():
+    try:
+        showTrips()
+    except NoTripsError as e:
+        print(e)
+        return
+    while True:
+        try:
+            sel = int(input("Numer: ").strip())
+            break
+        except ValueError:
+            print("Nieprawidłowy numer.")
+
+    if not (1 <= sel <= len(trips)):
+        print("Nieprawidłowy wybór.")
+        removeParticipantFromTrip()
+    else:
+        t = trips[sel - 1]
+        if not t.participants:
+            print("Brak uczestników.")
+        else:
+            print("Uczestnicy:")
+            for p in t.participants:
+                print(f" - {p['name']} <{p['email']}>")
+            email = input("Podaj email: ").strip()
+            try:
+                t.remove_participant(email)
+            except ParticipantNotFoundError:
+                print(f"Nie znaleziono uczestnika o email: {email}")
+                return
+            print(f"Usunięto uczestnika o email {email} z '{t.destination}'")
+
+def showParticipantsFromTrip():
+    try:
+        showTrips()
+    except NoTripsError as e:
+        print(e)
+        return
+
+    while True:
+        try:
+            sel = int(input("Numer: ").strip())
+            break
+        except ValueError:
+            print("Nieprawidłowy numer.")
+
+    if not (1 <= sel <= len(trips)):
+        print("Nieprawidłowy wybór.")
+        showParticipantsFromTrip()
+        return
+    else:
+        t = trips[sel - 1]
+        print(f"Uczestnicy '{t.destination}':")
+        if not t.participants:
+            print(" (brak uczestników)")
+        else:
+            for p in t.participants:
+                print(f" - {p['name']} <{p['email']}>")
+
+def saveToFile():
+    if not trips:
+        print("Brak wycieczek do zapisania.")
+        return
+    while True:
+        fileName = input().strip()
+        try:
+            with open(fileName, "w", encoding="utf-8") as file:
+                json.dump([trip.to_dict() for trip in trips], file, ensure_ascii=False, indent=4)
+            print(f"Wycieczki zapisano do pliku '{fileName}'.")
+            break
+        except Exception as e:
+            print(f"Wystąpił błąd podczas zapisywania: {e}")
+
+def loadFromFile():
+    global trips
+    print("Podaj nazwę pliku do wczytania wycieczek:")
+    while True:
+        fileName = input().strip()
+        try:
+            with open(fileName, "r", encoding="utf-8") as file:
+                data = json.load(file)
+                trips = [Trip(d["destination"], d["date"]) for d in data]
+                for trip, d in zip(trips, data):
+                    trip.participants = d.get("participants", [])
+            print(f"Wycieczki wczytano z pliku '{fileName}'.")
+            break
+        except FileNotFoundError:
+            print(f"Plik '{fileName}' nie istnieje.")
+        except json.JSONDecodeError:
+            print(f"Błąd odczytu danych z pliku '{fileName}'.")
+            break
+        except Exception as e:
+            print(f"Wystąpił błąd podczas wczytywania: {e}")
+            break
 
 def main():
-    logger = logging_setup.setup_logging()
-    warnings.filterwarnings("always", category=UserWarning)
-    trips = []  # lista wycieczek
-
     while True:
         print("\n=== Aplikacja organizacji wyjazdów grupowych ===")
         print("1. Utwórz nową wycieczkę")
@@ -25,191 +198,46 @@ def main():
         print("4. Dodaj uczestnika do wybranej wycieczki")
         print("5. Usuń uczestnika z wybranej wycieczki")
         print("6. Wyświetl uczestników wybranej wycieczki")
-        print("7. Zapisz wycieczkę do pliku")
+        print("7. Zapisz wycieczki do pliku")
         print("8. Wczytaj wycieczkę z pliku")
-        print("9. Geokoduj adres wybranej wycieczki")
-        print("10. Debug (uruchom pdb)")
-        print("11. Profiluj pamięć (tracemalloc)")
+        print("9. Debug (pdb)")
         print("0. Wyjście")
-        choice = input("Wybierz opcję: ").strip()
 
-        try:
-            if choice == '0':
-                print("Koniec programu.")
+        while True:
+            try:
+                choice = int(input("Wybierz opcję: ").strip())
                 break
+            except ValueError:
+                print("Nie podano liczby.")
 
-            elif choice == '1':
-                dest = input("Podaj cel podróży: ").strip()
-                date_str = input("Podaj datę wyjazdu (RRRR-MM-DD): ").strip()
-                date = parse_date(date_str)
-                trip = Trip(dest, date)
-                trips.append(trip)
-                print(f"Utworzono wycieczkę: {dest} ({date})")
-                logger.info(f"Utworzono wycieczkę: {dest} ({date})")
 
-            elif choice == '2':
-                if not trips:
-                    print("Brak wycieczek.")
-                else:
-                    print("Lista wycieczek:")
-                    for idx, t in enumerate(trips, 1):
-                        print(f" {idx}. {t.destination} ({t.date}) - uczestników: {len(t.participants)}")
+        if choice == 0:
+            print("Koniec programu.")
+            break
+        elif choice == 1:
+            newTrip()
+        elif choice == 2:
+            try:
+                showTrips()
+            except NoTripsError as e:
+                print(e)
+        elif choice == 3:
+            deleteTrip()
+        elif choice == 4:
+            addParticipantToTrip()
+        elif choice == 5:
+            removeParticipantFromTrip()
+        elif choice == 6:
+            showParticipantsFromTrip()
+        elif choice == 7:
+            saveToFile()
+        elif choice == 8:
+            loadFromFile()
+        elif choice == 9:
+            pdb.set_trace()
+        else:
+            print("Niepoprawna opcja")
 
-            elif choice == '3':
-                if not trips:
-                    print("Brak wycieczek do usunięcia.")
-                else:
-                    print("Wybierz wycieczkę do usunięcia:")
-                    for idx, t in enumerate(trips, 1):
-                        print(f" {idx}. {t.destination} ({t.date})")
-                    sel = int(input("Numer: ").strip())
-                    if 1 <= sel <= len(trips):
-                        rem = trips.pop(sel-1)
-                        print(f"Usunięto wycieczkę: {rem.destination}")
-                        logger.info(f"Usunięto wycieczkę: {rem.destination} ({rem.date})")
-                    else:
-                        print("Nieprawidłowy numer.")
-
-            elif choice == '4':
-                if not trips:
-                    print("Brak wycieczek. Utwórz najpierw wycieczkę.")
-                else:
-                    print("Wybierz wycieczkę:")
-                    for idx, t in enumerate(trips, 1):
-                        print(f" {idx}. {t.destination} ({t.date})")
-                    sel = int(input("Numer: ").strip())
-                    if not (1 <= sel <= len(trips)):
-                        print("Nieprawidłowy wybór.")
-                    else:
-                        t = trips[sel-1]
-                        name = input("Imię i nazwisko: ").strip()
-                        email = input("Email: ").strip()
-                        t.add_participant(name, email)
-                        print(f"Dodano uczestnika {name} <{email}> do '{t.destination}'")
-                        logger.info(f"Dodano uczestnika {email} do wycieczki '{t.destination}'")
-
-            elif choice == '5':
-                if not trips:
-                    print("Brak wycieczek.")
-                else:
-                    print("Wybierz wycieczkę:")
-                    for idx, t in enumerate(trips,1):
-                        print(f" {idx}. {t.destination} ({t.date})")
-                    sel = int(input("Numer: ").strip())
-                    if not (1 <= sel <= len(trips)):
-                        print("Nieprawidłowy wybór.")
-                    else:
-                        t = trips[sel-1]
-                        if not t.participants:
-                            print("Brak uczestników.")
-                        else:
-                            print("Uczestnicy:")
-                            for p in t.participants:
-                                print(f" - {p['name']} <{p['email']}>")
-                            email = input("Podaj email: ").strip()
-                            t.remove_participant(email)
-                            print(f"Usunięto uczestnika o email {email} z '{t.destination}'")
-                            logger.info(f"Usunięto {email} z '{t.destination}'")
-
-            elif choice == '6':
-                if not trips:
-                    print("Brak wycieczek.")
-                else:
-                    print("Wybierz wycieczkę:")
-                    for idx, t in enumerate(trips,1):
-                        print(f" {idx}. {t.destination} ({t.date})")
-                    sel = int(input("Numer: ").strip())
-                    if not (1 <= sel <= len(trips)):
-                        print("Nieprawidłowy wybór.")
-                    else:
-                        t = trips[sel-1]
-                        print(f"Uczestnicy '{t.destination}':")
-                        if not t.participants:
-                            print(" (brak uczestników)")
-                        else:
-                            for p in t.participants:
-                                print(f" - {p['name']} <{p['email']}>")
-
-            elif choice == '7':
-                if not trips:
-                    print("Brak wycieczek.")
-                else:
-                    print("Wybierz wycieczkę do zapisu:")
-                    for idx, t in enumerate(trips,1):
-                        print(f" {idx}. {t.destination} ({t.date})")
-                    sel = int(input("Numer: ").strip())
-                    if not (1 <= sel <= len(trips)):
-                        print("Nieprawidłowy wybór.")
-                    else:
-                        t = trips[sel-1]
-                        filename = input("Nazwa pliku (np. dane.json): ").strip()
-                        data = json.dumps(t.to_dict(), ensure_ascii=False, indent=4)
-                        with FileTransaction(filename) as f:
-                            f.write(data)
-                        print(f"Zapisano do {filename}.")
-                        logger.info(f"Zapisano '{t.destination}' do pliku {filename}")
-
-            elif choice == '8':
-                filename = input("Nazwa pliku do wczytania: ").strip()
-                with open(filename, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                t = Trip.from_dict(data)
-                trips.append(t)
-                print(f"Wczytano wycieczkę '{t.destination}' ({t.date})")
-                logger.info(f"Wczytano wycieczkę z pliku {filename}")
-
-            elif choice == '9':
-                if not trips:
-                    print("Brak wycieczek.")
-                else:
-                    print("Wybierz wycieczkę do geokodowania:")
-                    for idx, t in enumerate(trips,1):
-                        print(f" {idx}. {t.destination} ({t.date})")
-                    sel = int(input("Numer: ").strip())
-                    if not (1 <= sel <= len(trips)):
-                        print("Nieprawidłowy wybór.")
-                    else:
-                        t = trips[sel-1]
-                        try:
-                            coords = api.geocode(t.destination)
-                            print(f"Współrzędne: {coords}")
-                            logger.info(f"Geokodowano '{t.destination}' -> {coords}")
-                        except TripError as e:
-                            warnings.warn("Geokodowanie nie powiodło się.", UserWarning)
-                            print(f"Nie udało się geokodować: {e}")
-
-            elif choice == '10':
-                print("Wejście do debuggera PDB")
-                pdb.set_trace()
-
-            elif choice == '11':
-                print("Profilowanie pamięci...")
-                tracemalloc.start()
-                big_list = [x**2 for x in range(100000)]
-                current, peak = tracemalloc.get_traced_memory()
-                print(f"Zużycie: {current/1024:.2f}KB; szczyt: {peak/1024:.2f}KB")
-                snapshot = tracemalloc.take_snapshot()
-                stats = snapshot.statistics('lineno')[:3]
-                for s in stats:
-                    print(s)
-                tracemalloc.stop()
-                del big_list
-
-            else:
-                print("Nieznana opcja.")
-
-        except TripError as e:
-            logger.error(f"Błąd aplikacji: {e}", exc_info=True)
-            print(f"[Błąd] {e}")
-        except ParticipantExistsError as e:
-            logger.error(f"Duplikat uczestnika: {e}", exc_info=True)
-            print(f"[Błąd] {e}")
-        except ParticipantNotFoundError as e:
-            logger.error(f"Brak uczestnika: {e}", exc_info=True)
-            print(f"[Błąd] {e}")
-        except Exception as e:
-            logger.exception("Nieoczekiwany błąd")
-            print(f"[Nieoczekiwany błąd] {e}")
 
 if __name__ == "__main__":
     main()

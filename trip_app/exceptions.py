@@ -12,3 +12,13 @@ class ParticipantExistsError(TripError):
 class ParticipantNotFoundError(TripError):
     """Wyjątek zgłaszany przy próbie usunięcia lub dostępu do nieistniejącego uczestnika."""
     pass
+
+class DateError(TripError):
+    """Wyjątek zgłaszany przy niepoprawnym formacie lub zakresie daty."""
+    pass
+
+class NoTripsError(TripError):
+    pass
+
+class EmailError(TripError):
+    pass
