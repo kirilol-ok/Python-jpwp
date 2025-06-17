@@ -2,9 +2,14 @@ import pdb
 def example_function():
     x = 10
     y = 20
-    pdb.set_trace()  # Debugger starts here
+    #pdb.set_trace()  # Debugger starts here
     z = x + y
     print(z)
+
+    while(True):
+        z+=1
+        breakpoint()
+
 
 example_function()
 
@@ -16,3 +21,4 @@ example_function()
 # p <zmienna> – wypisz wartość zmiennej (print). Można też wywoływać dowolne wyrażenia Pythona, by podejrzeć stan programu.
 # l (list) – wyświetl fragment kodu wokół bieżącej pozycji, by mieć kontekst.
 # q (quit) – wyjście z debuggera i przerwanie programu.
+# breakpoint(), pdb.set_trace() – wstawienie punktu przerwania w kodzie, gdzie debugger się zatrzyma.
