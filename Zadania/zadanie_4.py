@@ -1,12 +1,11 @@
-# Zadanie 4: Ostrzeżenie, gdy wartość jest ujemna, ale nie przerywanie programu
-import warnings
+# import warnings
 
-def sprawdz_liczbe(n: int):
-    if n < 0:
-        # TODO: wywołaj ostrzeżenie UserWarning z komunikatem
-        ____________________________
-    print("Liczba OK:", n)
+# def sprawdz_liczbe(n: int):
+#     if n < 0:
+#         # TODO: wywołaj ostrzeżenie UserWarning z komunikatem
+#         ____________________________
+#     print("Liczba OK:", n)
 
-if __name__ == "__main__":
-    sprawdz_liczbe(-5)
-    print("Działanie kontynuuje")
+# if __name__ == "__main__":
+#     sprawdz_liczbe(-5)
+#     print("Działanie kontynuuje")

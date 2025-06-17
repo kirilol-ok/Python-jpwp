@@ -25,15 +25,15 @@ W tym repozytorium znajdziesz pięć ćwiczeń w formie “uzupełnij kod”. Ka
 * **Plik:** `zadanie_1.py`
 * **Cel:** Po złapaniu `FileNotFoundError` lub `JSONDecodeError` zgłosić własny wyjątek `BladDanych`, używając `raise ... from ...`.
 
-### Task 2 – Bezpieczna aktualizacja słownika
+### Task 2 – Bezpieczna aktualizacja listy
 
 * **Plik:** `zadanie_2.py`
-* **Cel:** Za pomocą menedżera kontekstu `BezpiecznaAktualizacja` zrobić rollback słownika do stanu wyjściowego w razie wyjątku.
+* **Cel:** Za pomocą kontekstowego menedżera `BezpiecznaLista` zrobić rollback listy do stanu wyjściowego w razie wystąpienia wyjątku.
 
-### Task 3 – Dekorator logujący wyjątki
+### Task 3 – Dekorator @bezpiecznie_loguj
 
 * **Plik:** `zadanie_3.py`
-* **Cel:** Stworzyć dekorator `@loguj_wyjatki`, który loguje pełny traceback przez `logger.exception(...)` i ponownie rzuca wyjątek.
+* **Cel:** Stworzyć dekorator `@bezpiecznie_loguj`, który przechwytuje wyjątki z dekorowanej funkcji, loguje pełny traceback przez `logger.exception(...)` i ponownie rzuca wyjątek.
 
 ### Task 4 – Ostrzeżenia zamiast wyjątków
 

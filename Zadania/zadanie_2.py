@@ -1,29 +1,29 @@
-# Zadanie 2: Bezpieczna aktualizacja słownika z rollbackiem przy błędzie
-import copy
+# import copy
 
-class BezpiecznaAktualizacja:
-    def __init__(self, data: dict):
-        self.data = data
+# class BezpiecznaLista:
+#     def __init__(self, lista: list):
+#         self.lista = lista
 
-    def __enter__(self):
-        # TODO: zachowaj kopię słownika
-        self._backup = ____________________
-        return self.data
+#     def __enter__(self):
+#         # TODO: zapisz kopię listy
+#         self._backup = ____________________
+#         return self.lista
 
-    def __exit__(self, typ, val, tb):
-        if typ is not None:
-            # TODO: przywróć stan słownika z kopii
-            ________________________________
-            return False
-        return True
+#     def __exit__(self, typ, val, tb):
+#         if typ is not None:
+#             # TODO: przywróć stan listy z kopii
+#             ________________________________
+#             # TODO: zwróć False, żeby wyjątek przebił się dalej
+#             _____________________________
+#         return True
 
-# Przykład:
-if __name__ == "__main__":
-    d = {"x": 1}
-    try:
-        with BezpiecznaAktualizacja(d) as dd:
-            dd["y"] = 2
-            raise RuntimeError("test")
-    except RuntimeError:
-        pass
-    print(d)  # powinno być {'x': 1}
+# if __name__ == "__main__":
+#     moja_lista = [1, 2, 3]
+#     try:
+#         with BezpiecznaLista(moja_lista) as lst:
+#             lst.append(4)
+#             raise ValueError("test")
+#     except ValueError:
+#         pass
+
+#     print(moja_lista)  # powinno wydrukować [1, 2, 3]
